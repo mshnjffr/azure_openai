@@ -1,16 +1,13 @@
-# Azure OpenAI Python Tutorial
+# Simple Azure OpenAI Chat Application
 
-A comprehensive Python application that demonstrates Azure OpenAI API usage from basic to advanced features. This educational tool helps developers understand how the OpenAI API works by providing practical examples and logging all raw API requests.
+A simple Python chat application that demonstrates Azure OpenAI API usage with function calling capabilities. Clean, straightforward code that shows how to integrate Azure OpenAI into your applications.
 
 ## Features
 
-- ✅ **Basic Text Completion** - Legacy completions API with parameter exploration
-- ✅ **Chat Completion** - Modern chat API with conversation history
-- ✅ **Function Calling** - Advanced AI function calling with practical tools
-- 🚧 **Streaming Responses** - Real-time response streaming (Coming Soon)
-- ✅ **API Request Logging** - All HTTP requests saved to `logs/api_requests.txt`
-- ✅ **Interactive Examples** - Learn by doing with hands-on examples
-- ✅ **Error Handling** - Proper error handling and debugging guidance
+- 🤖 **Simple Chat Interface** - Clean command-line chat with Azure OpenAI
+- 🔧 **Function Calling** - AI can use tools (weather, math, random numbers)
+- 📝 **API Request Logging** - All API calls logged to `logs/api_requests.txt`
+- ⚙️ **Easy Configuration** - Simple .env file setup
 
 ## Prerequisites
 
@@ -52,31 +49,23 @@ A comprehensive Python application that demonstrates Azure OpenAI API usage from
 
 ## Usage
 
-### Quick Start
+### Start Chatting
 
-Run the interactive tutorial:
+Simply run the application:
 ```bash
 python main.py
 ```
 
-### Individual Examples
+**Available Commands:**
+- Type any message to chat with the AI
+- Type `clear` to reset the conversation
+- Type `quit` to exit
 
-Run specific examples directly:
-
-**Basic Text Completion:**
-```bash
-python examples/basic_completion.py
-```
-
-**Chat Completion:**
-```bash
-python examples/chat_completion.py
-```
-
-**Function Calling:**
-```bash
-python examples/function_calling.py
-```
+**Available Tools:**
+The AI can automatically use these tools when needed:
+- 🌤️ **Weather** - Get weather for any city
+- 🧮 **Math** - Calculate mathematical expressions  
+- 🎲 **Random Numbers** - Generate random numbers in a range
 
 ### API Request Logging
 
@@ -116,53 +105,39 @@ Duration: 1.234s
 ## Project Structure
 
 ```
-azure_openai_tutorial/
+azure_openai_chat/
 ├── main.py                 # Main application entry point
-├── config/
-│   └── settings.py         # Configuration management
-├── api/
-│   ├── client.py           # Azure OpenAI client wrapper
-│   └── logger.py           # API request/response logging
-├── examples/
-│   ├── basic_completion.py # Basic text completion examples
-│   ├── chat_completion.py  # Chat completion examples
-│   └── function_calling.py # Function calling examples
-├── utils/
-│   └── helpers.py          # Utility functions
+├── simple_chat.py          # Core chat application with tool calling
 ├── logs/
-│   └── api_requests.txt    # Raw API request logs (auto-created)
+│   └── api_requests.txt    # API request logs (auto-created)
 ├── requirements.txt        # Python dependencies
 ├── .env.example           # Environment variables template
-└── README.md             # This file
+└── README.md              # This file
 ```
 
-## Examples Included
+## Example Interactions
 
-### 1. Basic Text Completion
-- Simple text completion
-- Parameter exploration (temperature, max_tokens)
-- Stop sequences
-- Interactive completion mode
+**Simple Chat:**
+```
+You: Hello! How are you?
+🤖 Assistant: Hello! I'm doing well, thank you for asking. How can I help you today?
+```
 
-### 2. Chat Completion  
-- Single-turn conversations
-- System message usage
-- Multi-turn conversations with history
-- Different message roles
-- Interactive chat mode
+**Weather Tool:**
+```
+You: What's the weather like in Tokyo?
+🔧 AI is using tools...
+📞 Calling: get_weather({'location': 'Tokyo'})
+🤖 Assistant: The weather in Tokyo is partly cloudy with a temperature of 25°C.
+```
 
-### 3. Function Calling
-- Weather information retrieval
-- Mathematical expression evaluation  
-- Random number generation
-- Knowledge base search
-- Multiple function calls in sequence
-- Interactive function calling mode
-
-### 4. Streaming Responses (Coming Soon)
-- Real-time response streaming
-- Chunk processing
-- Progress indicators
+**Math Tool:**
+```
+You: What's the square root of 144?
+🔧 AI is using tools...
+📞 Calling: calculate_math({'expression': 'sqrt(144)'})
+🤖 Assistant: The result of sqrt(144) is 12.0
+```
 
 ## Configuration Options
 
