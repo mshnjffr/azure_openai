@@ -154,7 +154,8 @@ class SimpleChatApp:
             "temperature": 0.7
         }
         
-        endpoint = f"{os.getenv('AZURE_OPENAI_ENDPOINT')}openai/deployments/{self.deployment_name}/chat/completions"
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
+        endpoint = f"{os.getenv('AZURE_OPENAI_ENDPOINT')}openai/deployments/{self.deployment_name}/chat/completions?api-version={api_version}"
         headers = {
             "api-key": "[REDACTED]",
             "Content-Type": "application/json"
