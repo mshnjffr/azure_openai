@@ -1,5 +1,5 @@
 """
-Azure OpenAI client wrapper with logging capabilities and improved error handling.
+Azure OpenAI client wrapper with logging capabilities.
 """
 
 import time
@@ -12,62 +12,13 @@ from api.logger import api_logger
 
 
 class AzureOpenAIClient:
-    """Wrapper around Azure OpenAI client with built-in logging and proper error handling."""
+    """Wrapper around Azure OpenAI client with built-in logging."""
     
     def __init__(self, enable_logging: bool = True):
         self.client = AzureOpenAI(**config.get_client_config())
         self.enable_logging = enable_logging
         self.deployment_name = config.deployment_name
         self.chat_deployment_name = config.chat_deployment_name
-    
-    def _handle_api_error(self, e: Exception, endpoint: str, headers: Dict, request_data: Dict, start_time: float):
-        """Handle API errors and extract actual HTTP response details."""
-        duration = time.time() - start_time
-        
-        # Extract actual HTTP details from API errors
-        response_status = 500  # Default
-        response_headers = {}
-        error_response = {"error": str(e), "type": type(e).__name__}
-        
-        if isinstance(e, APIError):
-            # Get actual HTTP status and response from OpenAI API error
-            if hasattr(e, 'response') and e.response:
-                response_status = e.response.status_code
-                response_headers = dict(e.response.headers) if e.response.headers else {}
-            if hasattr(e, 'body') and e.body:
-                error_response = e.body
-            elif hasattr(e, 'message'):
-                error_response = {"error": e.message, "code": getattr(e, 'code', None)}
-            print(f"🔍 API Error Details: Status {response_status}, Message: {error_response}")
-        elif isinstance(e, APIConnectionError):
-            response_status = 503  # Service unavailable
-            error_response = {"error": "Connection failed to Azure OpenAI", "details": str(e)}
-            print(f"🔌 Connection Error: {error_response}")
-        elif isinstance(e, RateLimitError):
-            response_status = 429  # Too many requests
-            error_response = {"error": "Rate limit exceeded", "details": str(e)}
-            print(f"⏱️ Rate Limit Error: {error_response}")
-        elif isinstance(e, APITimeoutError):
-            response_status = 408  # Request timeout
-            error_response = {"error": "Request timeout", "details": str(e)}
-            print(f"⏰ Timeout Error: {error_response}")
-        else:
-            print(f"❓ Unknown Error: {error_response}")
-        
-        # Log error with actual HTTP details if enabled
-        if self.enable_logging:
-            api_logger.log_request(
-                endpoint=endpoint,
-                method="POST",
-                headers=headers,
-                request_body=request_data,
-                response_status=response_status,
-                response_headers=response_headers,
-                response_body=error_response,
-                duration=duration
-            )
-        
-        return response_status, error_response
     
     def create_completion(self, 
                          prompt: str, 
@@ -139,7 +90,22 @@ class AzureOpenAIClient:
             return response_dict
             
         except Exception as e:
-            self._handle_api_error(e, endpoint, headers, request_data, start_time)
+            duration = time.time() - start_time
+            error_response = {"error": str(e), "type": type(e).__name__}
+            
+            # Log error if enabled
+            if self.enable_logging:
+                api_logger.log_request(
+                    endpoint=endpoint,
+                    method="POST",
+                    headers=headers,
+                    request_body=request_data,
+                    response_status=500,
+                    response_headers={},
+                    response_body=error_response,
+                    duration=duration
+                )
+            
             raise
     
     def create_chat_completion(self,
@@ -221,7 +187,22 @@ class AzureOpenAIClient:
             return response_dict
             
         except Exception as e:
-            self._handle_api_error(e, endpoint, headers, request_data, start_time)
+            duration = time.time() - start_time
+            error_response = {"error": str(e), "type": type(e).__name__}
+            
+            # Log error if enabled
+            if self.enable_logging:
+                api_logger.log_request(
+                    endpoint=endpoint,
+                    method="POST",
+                    headers=headers,
+                    request_body=request_data,
+                    response_status=500,
+                    response_headers={},
+                    response_body=error_response,
+                    duration=duration
+                )
+            
             raise
     
     def test_connection(self) -> bool:
@@ -232,10 +213,6 @@ class AzureOpenAIClient:
             True if connection is successful, False otherwise
         """
         try:
-            print("🔍 Testing connection to Azure OpenAI...")
-            print(f"   Endpoint: {config.endpoint}")
-            print(f"   Deployment: {self.chat_deployment_name}")
-            
             # Make a simple chat completion request
             response = self.create_chat_completion(
                 messages=[{"role": "user", "content": "Hello"}],
@@ -247,12 +224,6 @@ class AzureOpenAIClient:
             
         except Exception as e:
             print(f"❌ Connection failed: {e}")
-            print("\nTroubleshooting tips:")
-            print("1. Check your .env file has correct values")
-            print("2. Verify your API key is valid")
-            print("3. Ensure your deployment name is correct")
-            print("4. Check that your Azure OpenAI resource is active")
-            print("5. Review the API logs for detailed error information")
             return False
 
 
