@@ -21,7 +21,10 @@ class SimpleChatApp:
     """Simple chat application with Azure OpenAI and tool calling."""
     
     def __init__(self):
-        # Initialize Azure OpenAI client
+        # Validate configuration first
+        self._validate_config()
+        
+        # Initialize Azure OpenAI client with exact parameters from documentation
         self.client = AzureOpenAI(
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -30,9 +33,6 @@ class SimpleChatApp:
         
         self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
         self.conversation = []
-        
-        # Validate configuration
-        self._validate_config()
         
         # Set up available tools
         self.tools = self._setup_tools()
@@ -51,6 +51,28 @@ class SimpleChatApp:
             print(f"❌ Missing environment variables: {', '.join(missing)}")
             print("Please create a .env file with your Azure OpenAI credentials.")
             exit(1)
+        
+        # Show configuration for debugging
+        endpoint = os.getenv('AZURE_OPENAI_ENDPOINT', '')
+        deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', '')
+        api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21')
+        api_key = os.getenv('AZURE_OPENAI_API_KEY', '')
+        
+        print(f"📋 Configuration loaded:")
+        print(f"   Endpoint: {endpoint}")
+        print(f"   Deployment: {deployment}")
+        print(f"   API Version: {api_version}")
+        print(f"   API Key: {'***' + api_key[-4:] if len(api_key) > 4 else 'Too Short or Missing'}")
+        
+        # Validate endpoint format (should end with / or be in correct format)
+        if endpoint and not endpoint.endswith('/'):
+            print(f"   ⚠️  Endpoint should end with '/' - current: {endpoint}")
+        
+        # Validate endpoint contains openai.azure.com
+        if endpoint and 'openai.azure.com' not in endpoint:
+            print(f"   ⚠️  Endpoint should contain 'openai.azure.com' - current: {endpoint}")
+        
+        print()
     
     def _setup_tools(self):
         """Define available tools for the AI."""
@@ -154,6 +176,8 @@ class SimpleChatApp:
             "temperature": 0.7
         }
         
+        # Note: The actual API client handles the full URL construction internally
+        # This is just for logging purposes to show what endpoint would be called
         api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
         endpoint = f"{os.getenv('AZURE_OPENAI_ENDPOINT')}openai/deployments/{self.deployment_name}/chat/completions?api-version={api_version}"
         headers = {
@@ -402,11 +426,14 @@ class SimpleChatApp:
             print(f"❌ Connection failed!")
             print(f"   Error logged to: logs/api_requests.txt")
             print(f"   Check the log file for detailed API response")
-            print("\nTroubleshooting:")
+            print("\nTroubleshooting based on Azure OpenAI API Reference:")
             print("1. Verify your .env file exists and has correct values")
-            print("2. Check your API key is valid")
-            print("3. Ensure deployment name matches exactly")
-            print("4. Confirm your Azure OpenAI resource is active")
+            print("2. Check your API key is valid (32+ character string)")
+            print("3. Ensure deployment name matches exactly (case-sensitive)")
+            print("4. Endpoint format should be: https://your-resource.openai.azure.com/")
+            print("5. API version should be in YYYY-MM-DD format (e.g., 2024-10-21)")
+            print("6. Confirm your Azure OpenAI resource is active and model is deployed")
+            print("7. Check if you need to use Microsoft Entra ID instead of API key")
             return
         
         while True:
