@@ -329,24 +329,83 @@ class SimpleChatApp:
         
         return error_details
     
+    def _show_logs(self):
+        """Display recent API logs."""
+        log_file = "logs/api_requests.txt"
+        
+        if not os.path.exists(log_file):
+            print("📝 No logs found yet. Make an API call first to generate logs.\n")
+            return
+        
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            if not content.strip():
+                print("📝 Log file is empty.\n")
+                return
+            
+            print("📝 Recent API Logs:")
+            print("=" * 50)
+            
+            # Show last 2000 characters to avoid overwhelming output
+            if len(content) > 2000:
+                print("(Showing last 2000 characters)")
+                print("..." + content[-2000:])
+            else:
+                print(content)
+                
+            print("=" * 50)
+            print()
+            
+        except Exception as e:
+            print(f"❌ Error reading log file: {e}\n")
+    
     def run(self):
         """Run the chat application."""
         print("🤖 Azure OpenAI Chat with Tool Calling")
         print("=" * 50)
         print("Available tools: weather, math calculator, random numbers")
-        print("Type 'quit' to exit, 'clear' to reset conversation\n")
+        print("Type 'quit' to exit, 'clear' to reset conversation, 'logs' to view API logs\n")
         
-        # Test connection
+        # Test connection with detailed logging
+        print("🔍 Testing connection to Azure OpenAI...")
+        print(f"   Endpoint: {os.getenv('AZURE_OPENAI_ENDPOINT')}")
+        print(f"   Deployment: {self.deployment_name}")
+        
+        test_messages = [{"role": "user", "content": "Hi"}]
+        start_time = time.time()
+        
         try:
             test_response = self.client.chat.completions.create(
                 model=self.deployment_name,
-                messages=[{"role": "user", "content": "Hi"}],
+                messages=test_messages,
                 max_tokens=5
             )
-            print("✅ Connected to Azure OpenAI\n")
+            duration = time.time() - start_time
+            
+            # Log successful connection test
+            self._log_api_call(test_messages, test_response.model_dump(), duration=duration)
+            
+            print("✅ Connected to Azure OpenAI successfully!")
+            print(f"   Response logged to: logs/api_requests.txt")
+            print()
+            
         except Exception as e:
-            print(f"❌ Connection failed: {e}")
-            print("Please check your .env configuration.\n")
+            duration = time.time() - start_time
+            
+            # Extract and log detailed error information
+            error_details = self._extract_error_details(e)
+            self._log_api_call(test_messages, error_details=error_details, duration=duration)
+            
+            print(f"❌ Connection failed!")
+            print(f"   Error logged to: logs/api_requests.txt")
+            print(f"   Check the log file for detailed API response")
+            print("\nTroubleshooting:")
+            print("1. Verify your .env file exists and has correct values")
+            print("2. Check your API key is valid")
+            print("3. Ensure deployment name matches exactly")
+            print("4. Confirm your Azure OpenAI resource is active")
             return
         
         while True:
@@ -360,6 +419,10 @@ class SimpleChatApp:
                 if user_input.lower() == 'clear':
                     self.conversation = []
                     print("🗑️ Conversation cleared\n")
+                    continue
+                
+                if user_input.lower() == 'logs':
+                    self._show_logs()
                     continue
                 
                 if not user_input:
