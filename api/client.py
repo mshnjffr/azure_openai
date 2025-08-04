@@ -212,9 +212,9 @@ class AzureOpenAIClient:
             True if connection is successful, False otherwise
         """
         try:
-            # Make a simple completion request
-            response = self.create_completion(
-                prompt="Hello",
+            # Make a simple chat completion request
+            response = self.create_chat_completion(
+                messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=1,
                 temperature=0
             )
