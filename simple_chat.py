@@ -179,8 +179,8 @@ class SimpleChatApp:
             "model": self.deployment_name,
             "messages": messages,
             "tools": self.tools,
-            "max_tokens": 500,
-            "temperature": 0.7
+            "max_completion_tokens": 500,
+            "temperature": 1
         }
         
         # Note: The actual API client handles the full URL construction internally
@@ -248,8 +248,8 @@ class SimpleChatApp:
                 model=self.deployment_name,
                 messages=self.conversation,
                 tools=self.tools,
-                max_tokens=500,
-                temperature=0.7
+                max_completion_tokens=500,
+                temperature=1
             )
             
             duration = time.time() - start_time
@@ -288,8 +288,8 @@ class SimpleChatApp:
                 response2 = self.client.chat.completions.create(
                     model=self.deployment_name,
                     messages=self.conversation,
-                    max_tokens=500,
-                    temperature=0.7
+                    max_completion_tokens=500,
+                    temperature=1
                 )
                 duration2 = time.time() - start_time2
                 
@@ -413,8 +413,8 @@ class SimpleChatApp:
             test_response = self.client.chat.completions.create(
                 model=self.deployment_name,
                 messages=test_messages,
-                max_tokens=5,
-                temperature=0
+                max_completion_tokens=5,
+                temperature=1
             )
             duration = time.time() - start_time
             

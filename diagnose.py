@@ -147,8 +147,8 @@ def test_openai_client():
         response = client.chat.completions.create(
             model=deployment,
             messages=messages,
-            max_tokens=5,
-            temperature=0
+            max_completion_tokens=5,
+            temperature=1
         )
         
         print("   ✅ API call successful!")
