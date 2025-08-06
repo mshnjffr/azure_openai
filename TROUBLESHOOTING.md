@@ -2,6 +2,22 @@
 
 Based on [Microsoft's Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages)
 
+## 🔒 SSL Certificate Error (Quick Fix)
+
+**If you see: "certificate verify failed: self-signed certificate in certificate chain"**
+
+This is common in corporate environments. Quick fix:
+
+```bash
+# Set environment variable to disable SSL verification
+export DISABLE_SSL_VERIFY=true
+
+# Then run your application
+python simple_chat.py
+```
+
+⚠️ **Security Note:** Only use this in corporate environments with SSL inspection. Never use in production with real certificates.
+
 ## 🚀 Quick Diagnostic Steps
 
 1. **Run the diagnostic tool first:**
@@ -9,13 +25,19 @@ Based on [Microsoft's Azure OpenAI documentation](https://learn.microsoft.com/en
    python diagnose.py
    ```
 
-2. **Enable debug logging:**
+2. **If you get SSL certificate errors (corporate networks):**
+   ```bash
+   export DISABLE_SSL_VERIFY=true
+   python diagnose.py
+   ```
+
+3. **Enable debug logging:**
    ```bash
    export DEBUG_AZURE_OPENAI=true
    python simple_chat.py
    ```
 
-3. **Check your logs:**
+4. **Check your logs:**
    ```bash
    cat logs/api_requests.txt
    ```
@@ -97,10 +119,13 @@ AZURE_OPENAI_API_VERSION=2024-10-21
 - **Firewall rules:** Azure OpenAI uses port 443 (HTTPS)
 - **DNS resolution:** Ensure `*.openai.azure.com` can be resolved
 
-### SSL/Certificate Issues
+### SSL/Certificate Issues (Corporate Networks)
+- **Most common fix:** `export DISABLE_SSL_VERIFY=true` then run the app
+- **Corporate SSL inspection:** Many companies use self-signed certificates
 - **System time:** Ensure computer clock is accurate
 - **Certificate store:** Update system certificates if needed
 - **Antivirus/Security:** Some security software blocks API calls
+- **Alternative:** Ask IT to add `*.openai.azure.com` to SSL inspection bypass list
 
 ## 🔄 Alternative API Versions to Try
 

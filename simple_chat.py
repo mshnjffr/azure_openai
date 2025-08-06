@@ -32,11 +32,29 @@ class SimpleChatApp:
         self._validate_config()
         
         # Initialize Azure OpenAI client with exact parameters from documentation
-        self.client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
-        )
+        # Handle SSL certificate issues in corporate environments
+        import ssl
+        import httpx
+        
+        # Check if SSL verification should be disabled (corporate environments)
+        disable_ssl = os.getenv("DISABLE_SSL_VERIFY", "").lower() in ["true", "1", "yes"]
+        
+        if disable_ssl:
+            print("⚠️  SSL verification disabled (corporate environment)")
+            # Create custom HTTP client that doesn't verify SSL
+            http_client = httpx.Client(verify=False)
+            self.client = AzureOpenAI(
+                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
+                http_client=http_client
+            )
+        else:
+            self.client = AzureOpenAI(
+                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
+            )
         
         self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
         self.conversation = []
@@ -358,6 +376,17 @@ class SimpleChatApp:
             error_details["status_code"] = 408
             error_details["error_body"] = {"error": "Request timeout", "details": str(exception)}
             print(f"⏰ Timeout: Request to Azure OpenAI timed out")
+        
+        else:
+            # Check for SSL certificate errors
+            error_str = str(exception).lower()
+            if "certificate" in error_str or "ssl" in error_str:
+                error_details["status_code"] = 502
+                error_details["error_body"] = {"error": "SSL Certificate Error", "details": str(exception)}
+                print(f"🔒 SSL Certificate Error (Corporate Network)")
+                print(f"   💡 Try: export DISABLE_SSL_VERIFY=true")
+                print(f"   💡 Or run: DISABLE_SSL_VERIFY=true python simple_chat.py")
+                print(f"   ⚠️  This disables SSL verification (use only in corporate environments)")
         
         return error_details
     

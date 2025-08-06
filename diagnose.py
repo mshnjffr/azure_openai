@@ -133,11 +133,26 @@ def test_openai_client():
     try:
         # Initialize client with verbose logging
         print("   🔧 Initializing Azure OpenAI client...")
-        client = AzureOpenAI(
-            api_key=api_key,
-            azure_endpoint=endpoint,
-            api_version=api_version
-        )
+        
+        # Handle SSL certificate issues in corporate environments
+        import httpx
+        disable_ssl = os.getenv("DISABLE_SSL_VERIFY", "").lower() in ["true", "1", "yes"]
+        
+        if disable_ssl:
+            print("   ⚠️  SSL verification disabled (corporate environment)")
+            http_client = httpx.Client(verify=False)
+            client = AzureOpenAI(
+                api_key=api_key,
+                azure_endpoint=endpoint,
+                api_version=api_version,
+                http_client=http_client
+            )
+        else:
+            client = AzureOpenAI(
+                api_key=api_key,
+                azure_endpoint=endpoint,
+                api_version=api_version
+            )
         print("   ✅ Client initialized successfully")
         
         # Test API call with minimal payload
@@ -210,9 +225,13 @@ def test_openai_client():
             print("   - Check network stability")
             print("   - Try increasing timeout in client settings")
         elif "certificate" in error_str or "ssl" in error_str:
-            print("\n   🔧 SSL/Certificate troubleshooting:")
-            print("   - Check system time is correct")
-            print("   - Update certificates if needed")
+            print("\n   🔧 SSL/Certificate troubleshooting (CORPORATE NETWORK DETECTED):")
+            print("   - This is common in corporate environments with SSL inspection")
+            print("   - Try: export DISABLE_SSL_VERIFY=true")
+            print("   - Then run: python diagnose.py")
+            print("   - Or: DISABLE_SSL_VERIFY=true python simple_chat.py")
+            print("   - ⚠️  This disables SSL verification (corporate environments only)")
+            print("   - Alternative: Contact IT to add Azure OpenAI to SSL inspection bypass")
         
         return False
     
