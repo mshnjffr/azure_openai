@@ -64,7 +64,8 @@ class SimpleChatApp:
         self.available_functions = {
             "get_weather": self._get_weather,
             "calculate_math": self._calculate_math,
-            "generate_random_number": self._generate_random_number
+            "generate_random_number": self._generate_random_number,
+            "list_directory_files": self._list_directory_files
         }
     
     def _validate_config(self):
@@ -150,6 +151,27 @@ class SimpleChatApp:
                         "required": []
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "list_directory_files",
+                    "description": "List files and directories in a specified path",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string", 
+                                "description": "Directory path to explore (use '.' for current directory, or relative paths like 'logs', 'src', etc.)"
+                            },
+                            "show_hidden": {
+                                "type": "boolean",
+                                "description": "Whether to show hidden files (starting with .)"
+                            }
+                        },
+                        "required": ["path"]
+                    }
+                }
             }
         ]
     
@@ -187,6 +209,96 @@ class SimpleChatApp:
         
         number = random.randint(min_value, max_value)
         return f"Random number between {min_value} and {max_value}: {number}"
+    
+    def _list_directory_files(self, path: str = ".", show_hidden: bool = False) -> str:
+        """List files and directories in the specified path."""
+        try:
+            import os
+            import stat
+            from datetime import datetime
+            
+            # Security: Only allow relative paths and prevent directory traversal
+            if os.path.isabs(path):
+                return "Error: Absolute paths are not allowed for security reasons. Use relative paths like '.', 'logs', etc."
+            
+            # Prevent directory traversal attacks
+            if ".." in path or path.startswith("/"):
+                return "Error: Directory traversal not allowed. Use relative paths within the current directory."
+            
+            # Get the full path but ensure it's within current working directory
+            full_path = os.path.abspath(path)
+            current_dir = os.getcwd()
+            
+            # Ensure the resolved path is within the current directory
+            if not full_path.startswith(current_dir):
+                return "Error: Path is outside the allowed directory scope."
+            
+            if not os.path.exists(full_path):
+                return f"Error: Directory '{path}' does not exist."
+            
+            if not os.path.isdir(full_path):
+                return f"Error: '{path}' is not a directory."
+            
+            # List directory contents
+            try:
+                items = os.listdir(full_path)
+            except PermissionError:
+                return f"Error: Permission denied to access '{path}'."
+            
+            # Filter hidden files if requested
+            if not show_hidden:
+                items = [item for item in items if not item.startswith('.')]
+            
+            if not items:
+                return f"Directory '{path}' is empty (or contains only hidden files)."
+            
+            # Sort items: directories first, then files
+            items.sort()
+            dirs = []
+            files = []
+            
+            result = f"📁 Contents of '{path}':\n"
+            result += "=" * 40 + "\n"
+            
+            for item in items:
+                item_path = os.path.join(full_path, item)
+                try:
+                    stat_info = os.stat(item_path)
+                    size = stat_info.st_size
+                    modified = datetime.fromtimestamp(stat_info.st_mtime).strftime("%Y-%m-%d %H:%M")
+                    
+                    if os.path.isdir(item_path):
+                        dirs.append(f"📁 {item}/ (dir, modified: {modified})")
+                    else:
+                        # Format file size
+                        if size < 1024:
+                            size_str = f"{size} bytes"
+                        elif size < 1024 * 1024:
+                            size_str = f"{size/1024:.1f} KB"
+                        else:
+                            size_str = f"{size/(1024*1024):.1f} MB"
+                        
+                        files.append(f"📄 {item} ({size_str}, modified: {modified})")
+                except (OSError, PermissionError):
+                    # If we can't stat the file, just show it without details
+                    if os.path.isdir(item_path):
+                        dirs.append(f"📁 {item}/ (dir)")
+                    else:
+                        files.append(f"📄 {item} (file)")
+            
+            # Display directories first, then files
+            for dir_info in dirs:
+                result += dir_info + "\n"
+            
+            for file_info in files:
+                result += file_info + "\n"
+            
+            result += f"\nTotal: {len(dirs)} directories, {len(files)} files"
+            
+            return result
+            
+        except Exception as e:
+            return f"Error listing directory '{path}': {str(e)}"
     
     def _log_api_call(self, messages: List[Dict], response=None, error_details: Dict = None, duration: float = None):
         """Enhanced API logging with actual HTTP response details."""
@@ -426,8 +538,9 @@ class SimpleChatApp:
         """Run the chat application."""
         print("🤖 Azure OpenAI Chat with Tool Calling")
         print("=" * 50)
-        print("Available tools: weather, math calculator, random numbers")
-        print("Type 'quit' to exit, 'clear' to reset conversation, 'logs' to view API logs\n")
+        print("Available tools: weather, math calculator, random numbers, file explorer")
+        print("Type 'quit' to exit, 'clear' to reset conversation, 'logs' to view API logs")
+        print("Examples: 'What files are in this directory?' or 'List files in the logs folder'\n")
         
         # Test connection with detailed logging
         print("🔍 Testing connection to Azure OpenAI...")
