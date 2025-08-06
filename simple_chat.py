@@ -7,6 +7,7 @@ import json
 import math
 import random
 import time
+import logging
 from typing import Dict, Any, List
 from openai import AzureOpenAI
 from openai import APIError, APIConnectionError, RateLimitError, APITimeoutError
@@ -15,6 +16,12 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging for debugging (can be enabled via environment variable)
+if os.getenv("DEBUG_AZURE_OPENAI", "").lower() in ["true", "1", "yes"]:
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger("openai").setLevel(logging.DEBUG)
+    logging.getLogger("urllib3").setLevel(logging.DEBUG)
 
 
 class SimpleChatApp:
@@ -397,6 +404,7 @@ class SimpleChatApp:
         print("🔍 Testing connection to Azure OpenAI...")
         print(f"   Endpoint: {os.getenv('AZURE_OPENAI_ENDPOINT')}")
         print(f"   Deployment: {self.deployment_name}")
+        print(f"   API Version: {os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21')}")
         
         test_messages = [{"role": "user", "content": "Hi"}]
         start_time = time.time()
@@ -405,7 +413,8 @@ class SimpleChatApp:
             test_response = self.client.chat.completions.create(
                 model=self.deployment_name,
                 messages=test_messages,
-                max_tokens=5
+                max_tokens=5,
+                temperature=0
             )
             duration = time.time() - start_time
             
@@ -413,7 +422,10 @@ class SimpleChatApp:
             self._log_api_call(test_messages, test_response.model_dump(), duration=duration)
             
             print("✅ Connected to Azure OpenAI successfully!")
-            print(f"   Response logged to: logs/api_requests.txt")
+            print(f"   Response: {test_response.choices[0].message.content}")
+            print(f"   Tokens used: {test_response.usage.total_tokens}")
+            print(f"   Response time: {duration:.3f}s")
+            print(f"   Logs saved to: logs/api_requests.txt")
             print()
             
         except Exception as e:
@@ -423,17 +435,39 @@ class SimpleChatApp:
             error_details = self._extract_error_details(e)
             self._log_api_call(test_messages, error_details=error_details, duration=duration)
             
-            print(f"❌ Connection failed!")
-            print(f"   Error logged to: logs/api_requests.txt")
-            print(f"   Check the log file for detailed API response")
-            print("\nTroubleshooting based on Azure OpenAI API Reference:")
-            print("1. Verify your .env file exists and has correct values")
-            print("2. Check your API key is valid (32+ character string)")
-            print("3. Ensure deployment name matches exactly (case-sensitive)")
-            print("4. Endpoint format should be: https://your-resource.openai.azure.com/")
-            print("5. API version should be in YYYY-MM-DD format (e.g., 2024-10-21)")
-            print("6. Confirm your Azure OpenAI resource is active and model is deployed")
-            print("7. Check if you need to use Microsoft Entra ID instead of API key")
+            print(f"❌ Connection failed! Error: {str(e)[:100]}...")
+            print(f"   Duration: {duration:.3f}s")
+            print(f"   Full error logged to: logs/api_requests.txt")
+            
+            # Provide specific troubleshooting based on error type
+            if isinstance(e, APIConnectionError):
+                print(f"\n🔌 Connection Error Detected:")
+                print(f"   This suggests network, firewall, or endpoint issues")
+                print(f"   Run: python diagnose.py for detailed network diagnostics")
+            elif isinstance(e, APIError):
+                error_str = str(e)
+                if "401" in error_str or "Unauthorized" in error_str:
+                    print(f"\n🔑 Authentication Error:")
+                    print(f"   Your API key may be invalid or expired")
+                elif "404" in error_str or "NotFound" in error_str:
+                    print(f"\n📍 Resource Not Found:")
+                    print(f"   Check deployment name: '{self.deployment_name}'")
+                    print(f"   Verify model is deployed in Azure portal")
+                elif "429" in error_str:
+                    print(f"\n⏱️ Rate Limit Exceeded:")
+                    print(f"   Wait a few minutes or check quota limits")
+                else:
+                    print(f"\n❓ API Error:")
+                    print(f"   Check Azure portal for resource status")
+            
+            print(f"\n🔧 Quick fixes to try:")
+            print(f"   1. Run: python diagnose.py (comprehensive diagnostics)")
+            print(f"   2. Set DEBUG_AZURE_OPENAI=true for verbose logging")
+            print(f"   3. Try API version: 2024-02-15-preview or 2023-12-01-preview")
+            print(f"   4. Test from different network (mobile hotspot)")
+            print(f"   5. Verify Azure OpenAI resource is active in portal")
+            
+            print(f"\n📚 Reference: https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages")
             return
         
         while True:
